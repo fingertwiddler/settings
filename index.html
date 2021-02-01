@@ -44,7 +44,10 @@ button {
   padding: 5px 10px;
   border: none;
 }
-
+a.back {
+  font-color: rgba(0,0,0,0.8);
+  padding: 10px 0;
+}
 </style>
 <script type='module'>
 import { fs, git, http, config } from "/offbase.js"
@@ -159,7 +162,8 @@ document.addEventListener("DOMContentLoaded", async (e) => {
 </head>
 <body>
 <div class='container'>
-<h1><a href="/">Settings</a></h1>
+<h1>Settings</h1>
+<a class='back' href=".">go back</a>
 <div id='table'></div>
 <pre></pre>
 </div>
