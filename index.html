@@ -1,0 +1,167 @@
+<html>
+<head>
+<script src="/traverse.js"></script>
+<style>
+body {
+  font-family: Sans-serif;
+  margin: 0;
+  color: rgba(0,0,0,0.8);
+  font-size: 14px;
+}
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+}
+h1 {
+  padding: 0 10px;
+}
+h1 a {
+  text-decoration: none;
+  color: rgba(0,0,0,0.8);
+}
+.item {
+  padding: 20px;
+  background: rgba(0,0,0,0.05);
+  margin: 10px;
+}
+.item input[type=text] {
+  width: 100%;
+  padding: 8px;
+  border-radius: 0;
+  border: 1px solid rgba(0,0,0,0.3);
+}
+.item input[type=checkbox] {
+  margin: 0;
+}
+.item label {
+  display: block;
+  padding-bottom: 10px;
+}
+button {
+  margin: 10px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 5px 10px;
+  border: none;
+}
+
+</style>
+<script type='module'>
+import { fs, git, http, config } from "/offbase.json"
+const PROXY = 'https://cors.isomorphic-git.org'
+const HOME = "/home"
+const APP = "/bin"
+const render = (el, o, onSave) => {
+  let t = traverse(o)
+  let path = o.customize
+  let keys = Object.keys(path)
+  let x = {}
+  for(let key in path) {
+    let p = key.split(".")
+    let val = t.get(p)
+    if (!val) val = ""
+    x[key] = { val: val, label: path[key].label, type: path[key].type }
+  }
+  // if the url field doesn't exist, display the current repo url
+  document.querySelector("#table").innerHTML = Object.keys(x).map((key) => {
+    if (x[key].type && x[key].type.toLowerCase() === "boolean") {
+      if (x[key].val === true) {
+        return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='checkbox' checked></div>`
+      } else {
+        return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='checkbox'></div>`
+      }
+    } else {
+      return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='text' value='${x[key].val}'></div>`
+    }
+  }).join("") + "<button id='submit'>Done</button"
+  document.querySelector("#submit").addEventListener("click", (e) => {
+    let changed = {}
+    document.querySelectorAll(".item input").forEach((el) => {
+      // check if changed
+      let type = path[el.id].type
+      if (type) type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() // capitalize
+      let val;
+      if (["Number", "Boolean", "String"].includes(type)) {
+        let result = (type === "Boolean" ? el.checked : el.value)
+        val = window[type](result)
+      } else {
+        val = el.value
+      }
+      let keyPath = el.id.split(".")
+      let original = t.get(keyPath)
+      if (original !== val) {
+        changed[el.id] = { original: original, updated: val }
+        t.set(keyPath, val)
+      }
+    })
+    onSave({
+      value: t.value,
+      changed: changed
+    })
+  })
+}
+const reclone = async (changed) => {
+  for(let key in changed) {
+    let type;
+    if (key.startsWith("lib.")) {
+      type = "lib"
+    } else if (key.startsWith("bin.")) {
+      type = "bin"
+    }
+    debugger;
+    if (type) {
+      let c = changed[key]
+      let requireKey
+      if (type === 'lib') {
+        requireKey = "/" + type + "/" + key.split(".")[1]
+      } else if (type === 'bin') {
+        requireKey = "/bin"
+      }
+      let newUrl = c.updated
+      let garbage = "/$garbage"
+      // move old folder to a "$garbage" folder
+      console.log("renaming", requireKey, "to", garbage)
+      try {
+        await fs.promises.rename(requireKey, garbage)
+      } catch (e) { }
+      console.log("rename finished")
+      // clone into new folder
+      console.log("cloning", requireKey, "at", newUrl)
+      if (newUrl.length > 0) {
+        await git.clone({ fs: fs, http, corsProxy: PROXY, singleBranch: true, ref: "main",
+          dir: requireKey,
+          url: newUrl
+        })
+        console.log("clone finished")
+      }
+    }
+  }
+}
+document.addEventListener("DOMContentLoaded", async (e) => {
+  let str = await fs.promises.readFile(HOME + "/offbase.json", "utf8").catch((e) => { })
+  if (str) {
+    let j = JSON.parse(str)
+    render(document.querySelector("#table"), j, async (res) => {
+      if (Object.keys(res.changed).length > 0) {
+        await fs.promises.writeFile(HOME + "/offbase.json", JSON.stringify(res.value))
+        await reclone(res.changed)
+        setTimeout(() => {
+          debugger;
+          location.href = location.href
+        }, 1000)
+      } else {
+        console.log("no change")
+      }
+    })
+  }
+})
+</script>
+</head>
+<body>
+<div class='container'>
+<h1><a href="/">Settings</a></h1>
+<div id='table'></div>
+<pre></pre>
+</div>
+</body>
+</html>
