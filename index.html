@@ -14,6 +14,7 @@ body {
 }
 h1 {
   padding: 0 10px;
+  margin: 0;
 }
 h1 a {
   text-decoration: none;
@@ -45,8 +46,10 @@ button {
   border: none;
 }
 a.back {
-  font-color: rgba(0,0,0,0.8);
-  padding: 10px 0;
+  color: rgba(0,0,0,0.8);
+  padding: 15px;
+  display: inline-block;
+  font-size: 16px;
 }
 </style>
 <script type='module'>
@@ -163,7 +166,7 @@ document.addEventListener("DOMContentLoaded", async (e) => {
 <body>
 <div class='container'>
 <h1>Settings</h1>
-<a class='back' href=".">go back</a>
+<a class='back' href=".">back</a>
 <div id='table'></div>
 <pre></pre>
 </div>
