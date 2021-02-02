@@ -45,11 +45,21 @@ button {
   padding: 5px 10px;
   border: none;
 }
+button.refresh {
+  margin: 0;
+  border-radius: 0;
+  background: none;
+  width: 40px;
+}
 a.back {
   color: rgba(0,0,0,0.8);
   padding: 15px;
   display: inline-block;
   font-size: 16px;
+}
+.input-group {
+  display: flex;
+  align-items: stretch;
 }
 </style>
 <script type='module'>
@@ -61,52 +71,60 @@ const render = (el, o, onSave) => {
   let t = traverse(o)
   let items = o.customize
   let x = {}
-  for(let item of items) {
+  let elements = items.map((item) => {
     let { path, label, type } = item;
     let p = path.split(".")
     let val = t.get(p)
     if (!val) val = ""
-    x[path] = { val: val, label: label, type: type }
-  }
+    return { path: path, val: val, label: label, type: type }
+  })
   // if the url field doesn't exist, display the current repo url
-  document.querySelector("#table").innerHTML = Object.keys(x).map((key) => {
-    if (x[key].type && x[key].type.toLowerCase() === "boolean") {
-      if (x[key].val === true) {
-        return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='checkbox' checked></div>`
+  document.querySelector("#table").innerHTML = items.map((item) => {
+    if (item.type && item.type.toLowerCase() === "boolean") {
+      if (item.val === true) {
+        return `<div class='item'><label>${item.label}</label><input id='${item.path}' type='checkbox' checked></div>`
       } else {
-        return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='checkbox'></div>`
+        return `<div class='item'><label>${item.label}</label><input id='${item.path}' type='checkbox'></div>`
       }
     } else {
-      return `<div class='item'><label>${x[key].label}</label><input id='${key}' type='text' value='${x[key].val}'></div>`
+      return `<div class="input-group">
+<input id="${item.label}" type="text" value="${item.val}">
+<button class="refresh"><svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>refresh-glyph</title><path d="M66.71,287.91H0v160l47.36-43.59A255.71,255.71,0,0,0,255.9,512C386.54,512,494.19,414.15,510,287.91H445.29A192,192,0,0,1,95,360.6l79.08-72.69Zm0,0" fill="#434040"/><path d="M255.9,0C125.46,0,17.64,97.63,2,224H66.71a192,192,0,0,1,353.26-68l-68,68H512v-160l-45.78,45.78A255.89,255.89,0,0,0,255.9,0Zm0,0" fill="#434040"/></svg></button>
+</div>`
     }
   }).join("") + "<button id='submit'>Done</button"
-  document.querySelector("#submit").addEventListener("click", (e) => {
-    let changed = {}
-    document.querySelectorAll(".item input").forEach((el) => {
-      // check if changed
-      let i = items.filter((item) => {
-        return item.path === el.id
+  document.querySelector("#table").addEventListener("click", async (e) => {
+    if (e.target.id === 'submit') {
+      let changed = {}
+      document.querySelectorAll(".item input").forEach((el) => {
+        // check if changed
+        let i = items.filter((item) => {
+          return item.path === el.id
+        })
+        let type = i[0].type
+        if (type) type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() // capitalize
+        let val;
+        if (["Number", "Boolean", "String"].includes(type)) {
+          let result = (type === "Boolean" ? el.checked : el.value)
+          val = window[type](result)
+        } else {
+          val = el.value
+        }
+        let keyPath = el.id.split(".")
+        let original = t.get(keyPath)
+        if (original !== val) {
+          changed[el.id] = { original: original, updated: val }
+          t.set(keyPath, val)
+        }
       })
-      let type = i[0].type
-      if (type) type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() // capitalize
-      let val;
-      if (["Number", "Boolean", "String"].includes(type)) {
-        let result = (type === "Boolean" ? el.checked : el.value)
-        val = window[type](result)
-      } else {
-        val = el.value
-      }
-      let keyPath = el.id.split(".")
-      let original = t.get(keyPath)
-      if (original !== val) {
-        changed[el.id] = { original: original, updated: val }
-        t.set(keyPath, val)
-      }
-    })
-    onSave({
-      value: t.value,
-      changed: changed
-    })
+      onSave({
+        value: t.value,
+        changed: changed
+      })
+    } else if (e.target.className === "refresh") {
+      let el = e.target.closest(".input-group").querySelector("input[type=text]")
+      await reclone({ updated: el.value })
+    }
   })
 }
 const reclone = async (changed) => {
