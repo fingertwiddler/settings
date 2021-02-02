@@ -179,6 +179,9 @@ const reclone = async (changed) => {
           dir: requireKey,
           url: newUrl
         })
+        let config = await git.getConfig({ fs, dir: HOME, path: 'remote.origin.url', })
+        await git.setConfig({ fs, dir: HOME, path: 'remote.upstream.url', value: config })
+        await git.setConfig({ fs, dir: HOME, path: 'remote.upstream.fetch', value: "+refs/heads/*:refs/remotes/upstream/*" })
         console.log("clone finished")
       }
     }
