@@ -59,14 +59,14 @@ const HOME = "/home"
 const APP = "/bin"
 const render = (el, o, onSave) => {
   let t = traverse(o)
-  let path = o.customize
-  let keys = Object.keys(path)
+  let items = o.customize
   let x = {}
-  for(let key in path) {
-    let p = key.split(".")
+  for(let item of items) {
+    let { path, label, type } = item;
+    let p = path.split(".")
     let val = t.get(p)
     if (!val) val = ""
-    x[key] = { val: val, label: path[key].label, type: path[key].type }
+    x[path] = { val: val, label: label, type: type }
   }
   // if the url field doesn't exist, display the current repo url
   document.querySelector("#table").innerHTML = Object.keys(x).map((key) => {
@@ -84,7 +84,10 @@ const render = (el, o, onSave) => {
     let changed = {}
     document.querySelectorAll(".item input").forEach((el) => {
       // check if changed
-      let type = path[el.id].type
+      let i = items.filter((item) => {
+        return item.path === el.id
+      })
+      let type = i[0].type
       if (type) type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() // capitalize
       let val;
       if (["Number", "Boolean", "String"].includes(type)) {
@@ -114,7 +117,6 @@ const reclone = async (changed) => {
     } else if (key.startsWith("bin.")) {
       type = "bin"
     }
-    debugger;
     if (type) {
       let c = changed[key]
       let requireKey
@@ -152,7 +154,6 @@ document.addEventListener("DOMContentLoaded", async (e) => {
         await fs.promises.writeFile(HOME + "/offbase.json", JSON.stringify(res.value))
         await reclone(res.changed)
         setTimeout(() => {
-          debugger;
           location.href = location.href
         }, 1000)
       } else {
