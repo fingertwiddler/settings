@@ -79,7 +79,7 @@ const render = (el, o, onSave) => {
     return { path: path, val: val, label: label, type: type }
   })
   // if the url field doesn't exist, display the current repo url
-  document.querySelector("#table").innerHTML = items.map((item) => {
+  document.querySelector("#table").innerHTML = elements.map((item) => {
     if (item.type && item.type.toLowerCase() === "boolean") {
       if (item.val === true) {
         return `<div class='item'><label>${item.label}</label><input id='${item.path}' type='checkbox' checked></div>`
@@ -98,7 +98,7 @@ const render = (el, o, onSave) => {
       let changed = {}
       document.querySelectorAll(".item input").forEach((el) => {
         // check if changed
-        let i = items.filter((item) => {
+        let i = elements.filter((item) => {
           return item.path === el.id
         })
         let type = i[0].type
