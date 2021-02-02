@@ -100,7 +100,7 @@ const render = (el, o, onSave) => {
     }
   }).join("") + "<button id='submit'>Done</button"
   document.querySelector("#table").addEventListener("click", async (e) => {
-    if (e.target.id === 'submit') {
+    if (e.target.id === 'submit' || e.target.closest("#submit")) {
       let changed = {}
       document.querySelectorAll(".item input").forEach((el) => {
         // check if changed
@@ -127,7 +127,7 @@ const render = (el, o, onSave) => {
         value: t.value,
         changed: changed
       })
-    } else if (e.target.className === "refresh") {
+    } else if (e.target.className === "refresh" || e.target.closest(".refresh")) {
       let el = e.target.closest(".input-group").querySelector("input[type=text]")
       await reclone({ updated: el.value })
     }
