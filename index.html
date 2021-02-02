@@ -129,7 +129,11 @@ const render = (el, o, onSave) => {
       })
     } else if (e.target.className === "refresh" || e.target.closest(".refresh")) {
       let el = e.target.closest(".input-group").querySelector("input[type=text]")
-      await reclone({ updated: el.value })
+      await reclone({
+        [el.id]: {
+          updated: el.value
+        }
+      })
     }
   })
 }
